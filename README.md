@@ -1,13 +1,11 @@
----
-🚀 Build and ship a ChatGPT App in 15 minutes (no MCP / SSE pain)
-
-👉 **Get the Pro Starter Kit (includes Stripe-ready version, extra examples, and updates):**
-https://gumroad.com/YOUR_GUMROAD_LINK
----
-
 # chatgpt-app-starter-kit
 
-A minimal, sellable template repo for building ChatGPT Apps using an MCP server (Streamable HTTP + SSE) deployed on Vercel.
+A minimal Node.js + TypeScript starter kit for building ChatGPT Apps backed by an MCP server (Streamable HTTP + SSE) deployed to Vercel.
+
+This repository is intentionally small and review-friendly: one deterministic tool, one UI resource, and the required MCP endpoints.
+
+If you want the paid “Pro” package (separate download) with additional examples and practical templates (while keeping this repo open-source), see:
+https://shuddho7.gumroad.com/l/fppruq
 
 ## Free vs Pro
 
@@ -18,13 +16,23 @@ A minimal, sellable template repo for building ChatGPT Apps using an MCP server 
 - Open-source (MIT)
 
 **Pro (paid):**
-- Stripe / LemonSqueezy-ready version
+- Stripe / LemonSqueezy integration example
 - License notes for commercial use
 - Extra example tools (PDF, CSV, text)
 - App submission checklist
-- Ongoing updates as MCP evolves
+- Best-effort updates (see “Support & Updates”)
 
-👉 Get Pro: https://gumroad.com/YOUR_GUMROAD_LINK
+Get Pro: https://shuddho7.gumroad.com/l/fppruq
+
+## Who this is for
+- Developers who want a minimal, auditable MCP server example that deploys cleanly to Vercel.
+- Builders shipping a first ChatGPT App and want a working reference for Streamable HTTP + SSE.
+- Teams who prefer to start from a small template instead of a large framework.
+
+## What this is NOT
+- Not an agent framework, background job system, or multi-tool suite.
+- Not a UI kit or full product frontend.
+- Not a guarantee of approval, uptime, or compatibility with future platform changes.
 
 ## Demo
 
@@ -145,6 +153,29 @@ Guidelines:
 
 Where to edit:
 - Add/edit tools and resources in `apps/mcp-server/src/mcp.ts`.
+
+---
+
+## FAQ
+
+### Why is there a paid version if the repo is public?
+This is an “open-core” style template: the working reference implementation is public (MIT), and the Pro package is a separate paid download that bundles additional examples and templates.
+
+If you only need the minimal MCP server + one tool + one UI resource, the free repo is enough.
+
+### Is this guaranteed to work forever?
+No. MCP, ChatGPT, Vercel runtimes, and browser/client expectations can change over time. This repo is a stable reference point, but long-term compatibility is not guaranteed.
+
+---
+
+## Support & Updates
+- **Free repo:** best-effort community support via issues/PRs.
+- **Pro package:** best-effort support and updates are included for buyers, but there are no lifetime guarantees.
+
+## Pro License Note
+- The Pro version is intended for commercial use (including client work).
+- You may not redistribute, repackage, or resell Pro materials (source, templates, docs) as a competing product.
+- This free repository remains MIT licensed.
 
 ---
 
