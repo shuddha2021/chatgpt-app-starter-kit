@@ -1,6 +1,38 @@
+---
+🚀 Build and ship a ChatGPT App in 15 minutes (no MCP / SSE pain)
+
+👉 **Get the Pro Starter Kit (includes Stripe-ready version, extra examples, and updates):**
+https://gumroad.com/YOUR_GUMROAD_LINK
+---
+
 # chatgpt-app-starter-kit
 
 A minimal, sellable template repo for building ChatGPT Apps using an MCP server (Streamable HTTP + SSE) deployed on Vercel.
+
+## Free vs Pro
+
+**Free (this repo):**
+- Fully working MCP + SSE server
+- One example deterministic tool
+- One UI resource
+- Open-source (MIT)
+
+**Pro (paid):**
+- Stripe / LemonSqueezy-ready version
+- License notes for commercial use
+- Extra example tools (PDF, CSV, text)
+- App submission checklist
+- Ongoing updates as MCP evolves
+
+👉 Get Pro: https://gumroad.com/YOUR_GUMROAD_LINK
+
+## Demo
+
+_Add a short GIF or screenshot here showing:_
+- `vercel deploy` in terminal
+- ChatGPT → Create App → tool runs successfully
+
+(Leave this as a placeholder comment for now.)
 
 ## What’s Included
 - **MCP server** (Vercel deployable): `apps/mcp-server`
