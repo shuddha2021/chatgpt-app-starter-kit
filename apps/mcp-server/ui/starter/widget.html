@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Starter Widget</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 16px; }
+      textarea { width: 100%; min-height: 140px; }
+      pre { background: #f6f8fa; padding: 12px; overflow: auto; }
+      .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+      button { padding: 8px 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>Starter Widget</h1>
+    <p>This is a minimal UI resource that can render output from the <code>echo_summarize</code> tool.</p>
+
+    <div class="row">
+      <button id="render">Render JSON</button>
+      <span id="status"></span>
+    </div>
+
+    <textarea id="input" spellcheck="false" placeholder='Paste JSON here (either the summary object, or a full MCP tool result).'></textarea>
+
+    <h2>Rendered</h2>
+    <pre id="output"></pre>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const status = $("status");
+      const input = $("input");
+      const output = $("output");
+
+      function normalizeToolResult(obj) {
+        // Supports either the raw summary object or an MCP tool result like { content: [{type:'text', text:'{...json...}'}] }
+        if (obj && typeof obj === 'object' && Array.isArray(obj.content)) {
+          const first = obj.content[0];
+          if (first && typeof first === 'object' && typeof first.text === 'string') {
+            try { return JSON.parse(first.text); } catch { return { rawText: first.text }; }
+          }
+        }
+        return obj;
+      }
+
+      $("render").addEventListener("click", () => {
+        status.textContent = "";
+        output.textContent = "";
+        try {
+          const parsed = JSON.parse(input.value);
+          const normalized = normalizeToolResult(parsed);
+          output.textContent = JSON.stringify(normalized, null, 2);
+        } catch (err) {
+          status.textContent = "Invalid JSON";
+          output.textContent = String(err);
+        }
+      });
+    </script>
+  </body>
+</html>
