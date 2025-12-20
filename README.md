@@ -19,7 +19,7 @@ https://shuddho7.gumroad.com/l/fppruq
 - Additional examples and templates (some available now, others added over time)
 - Stripe / LemonSqueezy integration example (planned)
 - License notes for commercial use
-- Extra example tools (PDF, CSV, text)
+- Extra example tools (PDF, CSV, text — added over time)
 - App submission checklist
 - Best-effort updates as the kit evolves
 
