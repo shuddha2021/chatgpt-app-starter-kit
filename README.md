@@ -16,11 +16,12 @@ https://shuddho7.gumroad.com/l/fppruq
 - Open-source (MIT)
 
 **Pro (paid):**
-- Stripe / LemonSqueezy integration example
+- Additional examples and templates (some available now, others added over time)
+- Stripe / LemonSqueezy integration example (planned)
 - License notes for commercial use
 - Extra example tools (PDF, CSV, text)
 - App submission checklist
-- Best-effort updates (see “Support & Updates”)
+- Best-effort updates as the kit evolves
 
 Get Pro: https://shuddho7.gumroad.com/l/fppruq
 
