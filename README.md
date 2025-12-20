@@ -10,7 +10,7 @@ https://shuddho7.gumroad.com/l/fppruq
 ## Free vs Pro
 
 **Free (this repo):**
-- Fully working MCP + SSE server
+- A minimal MCP + SSE server reference implementation
 - One example deterministic tool
 - One UI resource
 - Open-source (MIT)
