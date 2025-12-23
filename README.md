@@ -120,6 +120,30 @@ Expected:
 
 ## Troubleshooting
 
+## Common pitfalls (timeouts, headers, Edge vs Serverless)
+
+- **Edge vs Node/Serverless matters for SSE:** some Edge/runtime/proxy combinations buffer output and delay flushing, making SSE look “stuck” or arrive in one burst.
+- **Missing `Accept: text/event-stream` → `406`:** `GET /` is the SSE endpoint and requires the correct `Accept` header.
+- **Missing `MCP-Session-Id` on `GET /`:** stream attachment requires an existing session; without it you’ll see invalid/missing session errors.
+- **CORS preflight must work:** ChatGPT will call `OPTIONS /`; if your deploy doesn’t route/handle OPTIONS correctly you’ll get CORS failures before any POST/GET happens.
+- **Wrong path / root routing:** this template serves MCP on `/`; hitting the wrong path commonly returns `405 Method Not Allowed`.
+- **Vercel Git deploy Root Directory:** for Git integration, set the project **Root Directory** to `apps/mcp-server`.
+- **Timeouts / long-running tools:** keep tool execution deterministic and fast; avoid long-running calls that exceed platform/request timeouts.
+- **Proxy/CDN buffering:** some intermediaries buffer streaming responses, causing SSE events to arrive all at once; test without extra proxies when debugging.
+
+Optional quick test:
+
+```bash
+# Health check
+curl -sS https://YOUR-PROJECT.vercel.app/health
+
+# SSE (must include Accept; session id shown as placeholder)
+curl -i \
+  -H 'Accept: text/event-stream' \
+  -H 'MCP-Session-Id: YOUR_SESSION_ID' \
+  https://YOUR-PROJECT.vercel.app/
+```
+
 ### 405 Method Not Allowed
 - You’re likely hitting the wrong path.
 - This template expects MCP at the **root** (`/`).
