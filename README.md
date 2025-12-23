@@ -124,6 +124,7 @@ Expected:
 
 - **Edge vs Node/Serverless matters for SSE:** some Edge/runtime/proxy combinations buffer output and delay flushing, making SSE look “stuck” or arrive in one burst.
 - **Missing `Accept: text/event-stream` → `406`:** `GET /` is the SSE endpoint and requires the correct `Accept` header.
+- **POST / does not require SSE `Accept`:** JSON-RPC requests (e.g. `tools/list`) should work with `Accept: application/json`, `Accept: */*`, or even no `Accept` header.
 - **Missing `MCP-Session-Id` on `GET /`:** stream attachment requires an existing session; without it you’ll see invalid/missing session errors.
 - **CORS preflight must work:** ChatGPT will call `OPTIONS /`; if your deploy doesn’t route/handle OPTIONS correctly you’ll get CORS failures before any POST/GET happens.
 - **Wrong path / root routing:** this template serves MCP on `/`; hitting the wrong path commonly returns `405 Method Not Allowed`.
@@ -155,6 +156,10 @@ curl -i \
   - `Access-Control-Allow-Origin: *`
   - `Access-Control-Allow-Methods: GET,POST,OPTIONS`
   - `Access-Control-Allow-Headers: Content-Type, Accept, MCP-Session-Id, Last-Event-ID`
+
+### POST / (JSON-RPC) should work with `Accept: application/json`
+- ChatGPT publishing/verification often uses `Accept: application/json` for JSON-RPC.
+- This template supports that for `POST /` (and does not require `text/event-stream` on POST).
 
 ### GET / not streaming (SSE)
 - Your client must send `Accept: text/event-stream`.

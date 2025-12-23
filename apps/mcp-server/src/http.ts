@@ -14,6 +14,38 @@ function setCors(res: Response) {
   );
 }
 
+function ensurePostAcceptHeader(req: Request) {
+  const headers = req.headers as Record<string, unknown>;
+  const accept = (headers['accept'] ?? '').toString();
+
+  // Some MCP clients (including ChatGPT verification) send `Accept: application/json`.
+  // The Streamable HTTP transport expects the client to accept both JSON and SSE.
+  // For POST (JSON-RPC), we always respond with JSON, so we normalize the Accept
+  // header to keep compatibility without requiring callers to send SSE Accept.
+  if (!accept.includes('application/json') || !accept.includes('text/event-stream')) {
+    const parts = new Set(
+      accept
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+    );
+    parts.add('application/json');
+    parts.add('text/event-stream');
+    const normalized = Array.from(parts).join(', ');
+    headers['accept'] = normalized;
+
+    const rawHeaders = (req as any).rawHeaders as string[] | undefined;
+    if (Array.isArray(rawHeaders)) {
+      for (let i = rawHeaders.length - 2; i >= 0; i -= 2) {
+        if (rawHeaders[i]?.toLowerCase() === 'accept') {
+          rawHeaders.splice(i, 2);
+        }
+      }
+      rawHeaders.push('Accept', normalized);
+    }
+  }
+}
+
 export function createHttpApp() {
   const app = createMcpExpressApp();
 
@@ -37,6 +69,8 @@ export function createHttpApp() {
     setCors(res);
 
     try {
+      ensurePostAcceptHeader(req);
+
       const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
       let transport: StreamableHTTPServerTransport;
