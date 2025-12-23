@@ -45,10 +45,10 @@ _Add a short GIF or screenshot here showing:_
 
 ## What’s Included
 - **MCP server** (Vercel deployable): `apps/mcp-server`
-  - `POST /` for MCP JSON-RPC
-  - `GET /` for SSE stream (`Accept: text/event-stream`)
-  - `OPTIONS /` with CORS headers
-  - `GET /health` → `{ "ok": true }`
+  - `POST /api` for MCP JSON-RPC
+  - `GET /api` for SSE stream (`Accept: text/event-stream`)
+  - `OPTIONS /api` with CORS headers
+  - `GET /api/health` → `{ "ok": true }`
   - Registers:
     - `tools/list`, `tools/call`
     - `resources/list`, `resources/read`
@@ -90,6 +90,7 @@ Option B (Git integration):
 - Push this repo to GitHub
 - Import the project in Vercel
 - Set the **Root Directory** to `apps/mcp-server`
+- Ensure **Output Directory** is blank (this is not a static site)
 
 After deploy, you’ll have a URL like:
 
@@ -101,14 +102,14 @@ In ChatGPT:
 - Find the MCP server URL setting (sometimes labeled **Server URL** or **MCP endpoint**)
 - Paste:
 
-`https://YOUR-PROJECT.vercel.app/`
+`https://YOUR-PROJECT.vercel.app/api`
 
-That root URL is correct because this template exposes MCP on `/`.
+This template exposes MCP under `/api` when deployed to Vercel.
 
 ### 5) Verify it’s alive
 Open in browser:
 
-`https://YOUR-PROJECT.vercel.app/health`
+`https://YOUR-PROJECT.vercel.app/api/health`
 
 Expected:
 
@@ -123,11 +124,11 @@ Expected:
 ## Common pitfalls (timeouts, headers, Edge vs Serverless)
 
 - **Edge vs Node/Serverless matters for SSE:** some Edge/runtime/proxy combinations buffer output and delay flushing, making SSE look “stuck” or arrive in one burst.
-- **Missing `Accept: text/event-stream` → `406`:** `GET /` is the SSE endpoint and requires the correct `Accept` header.
-- **POST / does not require SSE `Accept`:** JSON-RPC requests (e.g. `tools/list`) should work with `Accept: application/json`, `Accept: */*`, or even no `Accept` header.
-- **Missing `MCP-Session-Id` on `GET /`:** stream attachment requires an existing session; without it you’ll see invalid/missing session errors.
-- **CORS preflight must work:** ChatGPT will call `OPTIONS /`; if your deploy doesn’t route/handle OPTIONS correctly you’ll get CORS failures before any POST/GET happens.
-- **Wrong path / root routing:** this template serves MCP on `/`; hitting the wrong path commonly returns `405 Method Not Allowed`.
+- **Missing `Accept: text/event-stream` → `406`:** `GET /api` is the SSE endpoint and requires the correct `Accept` header.
+- **POST /api does not require SSE `Accept`:** JSON-RPC requests (e.g. `tools/list`) should work with `Accept: application/json`, `Accept: */*`, or even no `Accept` header.
+- **Missing `MCP-Session-Id` on `GET /api`:** stream attachment requires an existing session; without it you’ll see invalid/missing session errors.
+- **CORS preflight must work:** ChatGPT will preflight `OPTIONS /api`; if it fails you’ll get CORS errors before any POST/GET happens.
+- **Wrong path:** this template serves MCP at `/api` on Vercel; hitting `/` often returns `404` or `405` depending on your project settings.
 - **Vercel Git deploy Root Directory:** for Git integration, set the project **Root Directory** to `apps/mcp-server`.
 - **Timeouts / long-running tools:** keep tool execution deterministic and fast; avoid long-running calls that exceed platform/request timeouts.
 - **Proxy/CDN buffering:** some intermediaries buffer streaming responses, causing SSE events to arrive all at once; test without extra proxies when debugging.
@@ -136,38 +137,38 @@ Optional quick test:
 
 ```bash
 # Health check
-curl -sS https://YOUR-PROJECT.vercel.app/health
+curl -sS https://YOUR-PROJECT.vercel.app/api/health
 
 # SSE (must include Accept; session id shown as placeholder)
 curl -i \
   -H 'Accept: text/event-stream' \
   -H 'MCP-Session-Id: YOUR_SESSION_ID' \
-  https://YOUR-PROJECT.vercel.app/
+  https://YOUR-PROJECT.vercel.app/api
 ```
 
 ### 405 Method Not Allowed
 - You’re likely hitting the wrong path.
-- This template expects MCP at the **root** (`/`).
-- If you deployed `apps/mcp-server` but still see `/api/...` routes, confirm `apps/mcp-server/vercel.json` is present and deployed.
+- This template expects MCP at `/api`.
+- If you deployed `apps/mcp-server` but don’t see `/api/health`, confirm `apps/mcp-server/vercel.json` is present and deployed, and your Vercel project Root Directory is correct.
 
 ### CORS errors
-- ChatGPT will preflight with `OPTIONS /`.
+- ChatGPT will preflight with `OPTIONS /api`.
 - This template implements `OPTIONS /` and sets:
   - `Access-Control-Allow-Origin: *`
   - `Access-Control-Allow-Methods: GET,POST,OPTIONS`
   - `Access-Control-Allow-Headers: Content-Type, Accept, MCP-Session-Id, Last-Event-ID`
 
-### POST / (JSON-RPC) should work with `Accept: application/json`
+### POST /api (JSON-RPC) should work with `Accept: application/json`
 - ChatGPT publishing/verification often uses `Accept: application/json` for JSON-RPC.
-- This template supports that for `POST /` (and does not require `text/event-stream` on POST).
+- This template supports that for `POST /api` (and does not require `text/event-stream` on POST).
 
-### GET / not streaming (SSE)
+### GET /api not streaming (SSE)
 - Your client must send `Accept: text/event-stream`.
 - Without that header, the server responds with `406 Not Acceptable`.
 
-### “Invalid or missing session ID” on GET /
+### “Invalid or missing session ID” on GET /api
 - Streamable HTTP uses a session handshake.
-- `GET /` is used to attach the SSE stream for an existing session; it requires an `MCP-Session-Id` header.
+- `GET /api` is used to attach the SSE stream for an existing session; it requires an `MCP-Session-Id` header.
 
 ---
 
