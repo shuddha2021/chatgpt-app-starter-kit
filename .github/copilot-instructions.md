@@ -1,0 +1,3 @@
+- Keep changes minimal and deterministic.
+- Do not add extra tools/resources beyond what the template requires unless explicitly requested.
+- Prefer official @modelcontextprotocol/sdk Streamable HTTP transport patterns.
