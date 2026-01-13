@@ -46,16 +46,15 @@ This is not a replacement for documentation. It is a working example you can dep
 
 ---
 
-## Free (This Repo)
+## Free vs Pro
 
+**Free (this repo):**
 - A minimal MCP + SSE server reference implementation
 - One example deterministic tool
 - One UI resource
 - Open-source (MIT)
 
----
-
-## Pro Version (Paid)
+**Pro (paid):**
 
 The free repository is intentionally minimal and serves as a reference implementation.
 
