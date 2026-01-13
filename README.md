@@ -46,27 +46,31 @@ This is not a replacement for documentation. It is a working example you can dep
 
 ---
 
-## Free vs Pro
+## Free (This Repo)
 
-**Free (this repo):**
 - A minimal MCP + SSE server reference implementation
 - One example deterministic tool
 - One UI resource
 - Open-source (MIT)
 
-**Pro (paid):**
+---
 
-The Pro package is a time-saving bundle for developers who want to move faster with less guesswork. It includes practical examples beyond the minimal reference:
+## Pro Version (Paid)
 
-- Additional MCP tool examples (PDF, CSV, text processing)
+The free repository is intentionally minimal and serves as a reference implementation.
+
+The Pro package is a time-saving bundle for developers who want additional guidance, structure, and context beyond the minimal open-source starter.
+
+Includes:
+- Written guidance and patterns for extending MCP tools beyond the minimal example
 - Submission checklist for ChatGPT Apps
 - Commercial-use license notes
-- Stripe / LemonSqueezy integration reference
-- Ongoing updates as MCP and platform behavior evolves
-
-Pro is intended for developers and teams who prefer working examples over starting from scratch.
+- Payment integration guidance and references (Stripe / LemonSqueezy)
+- Best-effort updates as MCP and platform behavior evolves
 
 Get Pro: https://shuddho7.gumroad.com/l/fppruq
+
+---
 
 ## Who this is for
 - Developers who want a minimal, auditable MCP server example that deploys cleanly to Vercel.
