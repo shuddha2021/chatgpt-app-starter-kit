@@ -1,260 +1,421 @@
-# chatgpt-app-starter-kit
+# 🧠 ChatGPT App Starter Kit
 
-If you've tried to deploy a ChatGPT App backed by an MCP server and spent hours debugging why it doesn't work, you're not alone. Common issues include:
+**Minimal, production-grade MCP + SSE starter for ChatGPT Apps on Vercel.**
 
-- `405 Method Not Allowed`
-- `406 Not Acceptable`
-- `text/event-stream` not flushing
-- CORS preflight failures
-- Invalid or missing MCP session ID
-- Vercel Edge vs Serverless runtime confusion
+A known-working reference implementation for deploying a ChatGPT App backed by a Model Context Protocol server using Streamable HTTP + SSE. One tool, one resource, zero ambiguity on headers, sessions, or CORS.
 
-This starter kit exists so you can skip those issues and start from a known-working setup.
-
-A minimal Node.js + TypeScript starter kit for building ChatGPT Apps backed by an MCP server (Streamable HTTP + SSE) deployed to Vercel.
-
-This repository is intentionally small and review-friendly: one deterministic tool, one UI resource, and the required MCP endpoints.
+MCP apps fail in non-obvious ways. The transport layer has sharp edges that documentation describes but doesn't make visible — missing headers, session handshake ordering, runtime buffering, CORS preflight behavior. Debugging these issues can consume hours. This repository encodes the correct behavior so you can deploy, verify, and extend from a working baseline instead of reverse-engineering failures from spec documents.
 
 ---
 
-## Why MCP Apps Commonly Break
+## ✨ Why This Exists
 
-MCP apps fail in practice for reasons that are often not obvious from documentation alone:
+MCP-backed ChatGPT Apps break constantly in production for reasons that have nothing to do with tool logic.
 
-- **Header expectations:** The SSE endpoint requires `Accept: text/event-stream`. Without it, you get `406 Not Acceptable`. POST requests for JSON-RPC do not require this header.
-- **Session handshake requirements:** `GET /api` expects an existing session via `MCP-Session-Id`. Without a valid session, you receive "Invalid or missing session ID" errors.
-- **SSE buffering and runtime mismatches:** Some runtimes (Edge vs Serverless) and proxies buffer streaming output, causing SSE events to arrive in one burst instead of streaming.
-- **CORS preflight behavior:** ChatGPT preflights `OPTIONS /api` before POST or GET. If CORS headers are missing or incorrect, requests fail before reaching your handler.
+The failure modes are subtle and compound: a missing `Accept` header returns a generic `406`. A `GET` before `POST` produces a cryptic session error. An Edge runtime silently buffers SSE into a single burst. CORS preflight fails before your handler ever executes. Each of these is documented somewhere across MCP, Vercel, and ChatGPT platform specs — but the interactions between them are not.
 
-Documentation often describes *what* to implement but not *how these failures manifest* in practice. This starter kit encodes the correct behavior so you can observe it directly.
+Reading three sets of documentation and synthesizing the correct configuration is slow, error-prone work. This starter kit exists because the fastest way to understand a protocol is to observe it working.
 
----
+**What this encodes:**
+- The exact header, session, and CORS behavior ChatGPT expects
+- Accept header normalization that handles verification flows
+- A deterministic tool that isolates transport issues from logic bugs
+- Path mapping between local development and Vercel deployment
 
-## Docs vs This Starter Kit
-
-**Docs approach:**
-- Requires reading multiple documents across MCP, Vercel, and ChatGPT platform specs
-- Easy to miss header, session, or runtime details
-- Failures surface as generic HTTP or streaming errors with no clear cause
-
-**This starter kit:**
-- Encodes the minimum working setup in deployable code
-- Makes MCP behavior explicit and auditable
-- Serves as a known-good reference that deploys cleanly to Vercel
-
-This is not a replacement for documentation. It is a working example you can deploy, inspect, and extend.
+**What this is not:**
+- Not an agent framework, background job system, or multi-tool suite
+- Not a UI kit or full product frontend
+- Not a guarantee of approval, uptime, or future platform compatibility
 
 ---
 
-## Free vs Pro
+## 🎬 How It Works
 
-**Free (this repo):**
-- A minimal MCP + SSE server reference implementation
-- One example deterministic tool
-- One UI resource
-- Open-source (MIT)
+```
+  User                        ChatGPT                      MCP Server (Vercel)
+   │                            │                             │
+   │  "summarize this text"     │                             │
+   │ ─────────────────────────► │                             │
+   │                            │  POST /api (initialize)     │
+   │                            │ ───────────────────────────►│
+   │                            │  ◄── MCP-Session-Id ────────│
+   │                            │                             │
+   │                            │  GET /api (SSE attach)      │
+   │                            │ ───────────────────────────►│
+   │                            │  ◄── streaming events ──────│
+   │                            │                             │
+   │                            │  POST /api (tools/call)     │
+   │                            │ ───────────────────────────►│
+   │                            │  ◄── tool result ───────────│
+   │                            │                             │
+   │  ◄── formatted response ──│                             │
+```
 
-**Pro (paid):**
-
-The free repository is intentionally minimal and serves as a reference implementation.
-
-The Pro package is a time-saving bundle for developers who want additional guidance, structure, and context beyond the minimal open-source starter.
-
-Includes:
-- Written guidance and patterns for extending MCP tools beyond the minimal example
-- Submission checklist for ChatGPT Apps
-- Commercial-use license notes
-- Payment integration guidance and references (Stripe / LemonSqueezy)
-- Best-effort updates as MCP and platform behavior evolves
-
-Get Pro: https://shuddho7.gumroad.com/l/fppruq
-
----
-
-## Who this is for
-- Developers who want a minimal, auditable MCP server example that deploys cleanly to Vercel.
-- Builders shipping a first ChatGPT App and want a working reference for Streamable HTTP + SSE.
-- Teams who prefer to start from a small template instead of a large framework.
-
-## What this is NOT
-- Not an agent framework, background job system, or multi-tool suite.
-- Not a UI kit or full product frontend.
-- Not a guarantee of approval, uptime, or compatibility with future platform changes.
-
-## Demo
-
-_Add a short GIF or screenshot here showing:_
-- `vercel deploy` in terminal
-- ChatGPT → Create App → tool runs successfully
-
-(Leave this as a placeholder comment for now.)
-
-## What’s Included
-- **MCP server** (Vercel deployable): `apps/mcp-server`
-  - `POST /api` for MCP JSON-RPC
-  - `GET /api` for SSE stream (`Accept: text/event-stream`)
-  - `OPTIONS /api` with CORS headers
-  - `GET /api/health` → `{ "ok": true }`
-  - Registers:
-    - `tools/list`, `tools/call`
-    - `resources/list`, `resources/read`
-  - One deterministic tool: `echo_summarize`
-  - One UI resource: `ui://starter/widget.html`
-- **Optional local demo**: `apps/web` (simple page explaining the template)
-- **Docs & templates**: `docs/`
+1. Deploy `apps/mcp-server` to Vercel
+2. Paste `https://YOUR-PROJECT.vercel.app/api` into ChatGPT → Create App
+3. ChatGPT initializes a session via `POST /api`, receives `MCP-Session-Id`
+4. ChatGPT attaches SSE stream via `GET /api`, calls tools via `POST /api`
+5. Results stream back through the established session
 
 ---
 
-## 15-minute Quickstart
+## 🏗 Architecture
 
-### 0) Prereqs
-- Node.js 20+
-- A Vercel account
+```
+┌──────────────────────────────────────────────────────┐
+│                    ChatGPT Client                     │
+│    initialize → attach stream → call tools/read UI    │
+└───────────────────────┬──────────────────────────────┘
+                        │  Streamable HTTP + SSE
+                        ▼
+┌──────────────────────────────────────────────────────┐
+│              MCP Server  (apps/mcp-server)             │
+│                                                        │
+│   OPTIONS /api  ─────── CORS preflight (204)           │
+│   POST    /api  ─────── JSON-RPC dispatch              │
+│                          (initialize, tools/list,       │
+│                           tools/call, resources/*)      │
+│   GET     /api  ─────── SSE stream attach              │
+│   GET     /api/health ─ liveness probe                 │
+│                                                        │
+│   ┌──────────────────┐  ┌──────────────────────────┐   │
+│   │  echo_summarize   │  │  ui://starter/widget     │   │
+│   │  (deterministic)  │  │  (static HTML resource)  │   │
+│   └──────────────────┘  └──────────────────────────┘   │
+└──────────────────────────────────────────────────────┘
+```
 
-### 1) Install dependencies
-From repo root:
+The deployed surface is deliberately narrow — one transport, one tool, one resource. Small enough to audit in full before extending.
+
+**Path mapping:** locally the app serves at `/` and `/health`. On Vercel, the same handlers mount at `/api` and `/api/health` via the `api/` directory convention. This distinction matters when debugging.
+
+---
+
+## ⚙️ Core System
+
+### Request Flow
+
+| Method | Path | Behavior | Required Headers |
+|:---|:---|:---|:---|
+| `OPTIONS` | `/api` | Returns CORS headers, `204` | — |
+| `POST` | `/api` | JSON-RPC dispatch (`initialize`, `tools/list`, `tools/call`, `resources/*`) | Accept normalized automatically |
+| `GET` | `/api` | Attach SSE stream to existing session | `Accept: text/event-stream`, `MCP-Session-Id` |
+| `GET` | `/api/health` | `{"ok": true}` | — |
+
+### Session Lifecycle
+
+```
+POST /api { "method": "initialize" }
+  → creates StreamableHTTPServerTransport
+  → assigns MCP-Session-Id (UUID)
+  → stores transport in memory
+  → returns session ID in response header
+
+POST /api { "method": "tools/call" }
+  → resolves transport by MCP-Session-Id header
+  → dispatches to registered tool handler
+  → returns JSON-RPC result
+
+GET /api
+  → resolves transport by MCP-Session-Id header
+  → opens persistent SSE connection for server-push events
+
+session close
+  → removes transport from in-memory map
+```
+
+Sessions live in-memory. No external session store. No persistence across redeploys.
+
+**Critical ordering:** `GET /api` will always fail without a prior `POST /api` initialize. Stream attachment is not the session creation step.
+
+### Header Normalization
+
+`POST` requests have their `Accept` header automatically normalized to include both `application/json` and `text/event-stream`. This exists because:
+- ChatGPT verification flows send `Accept: application/json` for JSON-RPC
+- The MCP SDK transport expects the client to accept both content types
+- Without normalization, valid ChatGPT requests would be rejected
+
+`GET` is strict: missing `Accept: text/event-stream` returns `406 Not Acceptable`. No normalization.
+
+### CORS
+
+Every response sets:
+
+```
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+Access-Control-Allow-Headers: Content-Type, Accept, MCP-Session-Id, Last-Event-ID
+```
+
+`OPTIONS /api` returns `204` with these headers. ChatGPT will always preflight before `POST` or `GET` — if this fails, nothing else works.
+
+### The Example Tool
+
+`echo_summarize` accepts text and returns a deterministic summary:
+
+```json
+{
+  "preview": "first 240 chars...",
+  "stats": { "charCount": 142, "wordCount": 28, "lineCount": 3 },
+  "firstLine": "..."
+}
+```
+
+No network calls. No side effects. No randomness. If this tool fails after deployment, the problem is transport — not logic. That's the point.
+
+---
+
+## ⚠️ Failure Modes / Gotchas
+
+This is the most important section. These failures are real, common, and poorly documented elsewhere.
+
+### Headers & Protocol
+
+| Symptom | Cause | Fix |
+|:---|:---|:---|
+| `406 Not Acceptable` | `GET /api` called without `Accept: text/event-stream` | Add the header. `GET` is the SSE endpoint and enforces this strictly |
+| `POST /api` rejected | Client sends only `Accept: application/json` | Already handled — this starter normalizes Accept on POST. If you remove that logic, ChatGPT verification will break |
+| JSON-RPC errors | Malformed request body or wrong method name | Verify payload matches MCP JSON-RPC spec (`initialize`, `tools/list`, `tools/call`) |
+
+**Key distinction:** `POST /api` does not require `Accept: text/event-stream`. `GET /api` does. Mixing these up is the most common header mistake.
+
+### Session Handling
+
+| Symptom | Cause | Fix |
+|:---|:---|:---|
+| `Invalid or missing session ID` | `GET /api` called before `POST /api` initialized a session | Always `POST` first to receive `MCP-Session-Id`, then use it on `GET` |
+| `Bad Request: No valid session ID` | `POST /api` with unknown session ID on non-initialize request | Session may have expired or server redeployed. Re-initialize |
+
+**Session ordering is strict:** `POST /api` (initialize) → receive `MCP-Session-Id` → `GET /api` with that ID → `POST /api` with that ID for tool calls. Skipping the initialize step or losing the session ID breaks everything downstream.
+
+### Runtime & Streaming
+
+| Symptom | Cause | Fix |
+|:---|:---|:---|
+| SSE events arrive in one burst | Edge runtime or proxy buffering streaming output | Use Serverless runtime (not Edge). Test against the direct Vercel URL without intermediate proxies |
+| SSE connection drops silently | Platform timeout or network interruption | Keep tool execution fast and deterministic. Avoid long-running operations that exceed request timeouts |
+| SSE appears "stuck" | CDN or reverse proxy holding the connection | Bypass CDN when debugging. Verify `Transfer-Encoding: chunked` is not being rewritten |
+
+**Edge vs Serverless matters.** Some Edge runtime and proxy combinations buffer SSE output instead of streaming it. If streaming looks broken, check your runtime configuration first.
+
+### CORS
+
+| Symptom | Cause | Fix |
+|:---|:---|:---|
+| CORS errors before any request | `OPTIONS /api` preflight not returning correct headers | This starter handles it. If you still see CORS errors, check for proxy/CDN stripping response headers |
+| Works in curl but not from ChatGPT | Missing CORS headers on the actual response (not just preflight) | Ensure every response path sets CORS headers, including error responses |
+
+ChatGPT will preflight `OPTIONS /api` before every `POST` or `GET`. If the preflight fails, the actual request never fires. You'll see a CORS error with no server-side log.
+
+### Deployment
+
+| Symptom | Cause | Fix |
+|:---|:---|:---|
+| `405 Method Not Allowed` | Wrong path — hitting `/` instead of `/api` | MCP is served at `/api` on Vercel. Confirm your URL ends with `/api` |
+| `/api/health` returns 404 | Vercel Root Directory misconfigured | Set Root Directory to `apps/mcp-server`, leave Output Directory blank |
+| Works locally, fails on Vercel | Path mismatch — local serves at `/`, Vercel at `/api` | Use `/api` paths for all deployed requests. Use `/` paths only for local dev |
+| Deploy succeeds but nothing works | `vercel.json` not in deployed directory | Confirm `apps/mcp-server/vercel.json` exists and the Root Directory is set correctly |
+
+### Timeouts & Execution
+
+- Keep tool execution deterministic and fast. Vercel Serverless functions have hard timeout limits.
+- Long-running tools (network calls, heavy computation) will be killed mid-execution with no graceful shutdown.
+- If you need long-running operations, design tools to return quickly and provide status via subsequent calls.
+
+### Proxy & CDN
+
+- Intermediary proxies and CDNs may buffer streaming responses, causing SSE events to arrive all at once.
+- Some proxies rewrite `Transfer-Encoding` or `Content-Type` headers, breaking SSE.
+- Always test against the raw Vercel URL first. Add proxies only after confirming the baseline works.
+
+---
+
+## 🔧 Tech Stack
+
+| Layer | Technology | Why |
+|:---|:---|:---|
+| Runtime | Node.js 20+ | Required by MCP SDK, Vercel Serverless target |
+| Language | TypeScript (strict) | Explicit types for transport and tool contracts |
+| MCP SDK | `@modelcontextprotocol/sdk` | Official server, transport, and type primitives |
+| HTTP | Express | Predictable middleware chain for CORS + routing |
+| Validation | Zod | Input schemas that serve as both LLM contract and runtime guard |
+| Deployment | Vercel (Serverless) | Target platform for ChatGPT App hosting |
+| Local Dev | `tsx` (watch mode) | Fast iteration without a build step |
+| Demo UI | Vite + vanilla TypeScript | Optional local page for rendering tool output |
+
+---
+
+## 🚀 Quick Start
+
+**Prerequisites:** Node.js 20+, a Vercel account.
+
+### 1. Install
 
 ```bash
+git clone https://github.com/shuddha2021/chatgpt-app-starter-kit.git
+cd chatgpt-app-starter-kit
 npm install
 ```
 
-### 2) Build everything (sanity check)
+### 2. Build
 
 ```bash
 npm run build
 ```
 
-### 3) Deploy MCP server to Vercel
-Option A (Vercel CLI):
+### 3. Deploy
+
+**Option A — Vercel CLI:**
 
 ```bash
 cd apps/mcp-server
 npx vercel
 ```
 
-Option B (Git integration):
-- Push this repo to GitHub
-- Import the project in Vercel
-- Set the **Root Directory** to `apps/mcp-server`
-- Ensure **Output Directory** is blank (this is not a static site)
+**Option B — Git integration:**
 
-After deploy, you’ll have a URL like:
+1. Push to GitHub
+2. Import in Vercel
+3. Set **Root Directory** to `apps/mcp-server`
+4. Leave **Output Directory** blank
 
-`https://YOUR-PROJECT.vercel.app/`
+After deploy: `https://YOUR-PROJECT.vercel.app/`
 
-### 4) Connect it in ChatGPT “Create app”
-In ChatGPT:
-- Go to **Create** → **Apps** → **Create app**
-- Find the MCP server URL setting (sometimes labeled **Server URL** or **MCP endpoint**)
-- Paste:
+### 4. Connect to ChatGPT
 
-`https://YOUR-PROJECT.vercel.app/api`
+1. ChatGPT → Create → Apps → Create app
+2. Set MCP server URL to:
 
-This template exposes MCP under `/api` when deployed to Vercel.
-
-### 5) Verify it’s alive
-Open in browser:
-
-`https://YOUR-PROJECT.vercel.app/api/health`
-
-Expected:
-
-```json
-{"ok":true}
+```
+https://YOUR-PROJECT.vercel.app/api
 ```
 
----
+> **Note:** the path is `/api`, not `/`. This is the most common deployment mistake.
 
-## Troubleshooting
-
-## Common pitfalls (timeouts, headers, Edge vs Serverless)
-
-- **Edge vs Node/Serverless matters for SSE:** some Edge/runtime/proxy combinations buffer output and delay flushing, making SSE look “stuck” or arrive in one burst.
-- **Missing `Accept: text/event-stream` → `406`:** `GET /api` is the SSE endpoint and requires the correct `Accept` header.
-- **POST /api does not require SSE `Accept`:** JSON-RPC requests (e.g. `tools/list`) should work with `Accept: application/json`, `Accept: */*`, or even no `Accept` header.
-- **Missing `MCP-Session-Id` on `GET /api`:** stream attachment requires an existing session; without it you’ll see invalid/missing session errors.
-- **CORS preflight must work:** ChatGPT will preflight `OPTIONS /api`; if it fails you’ll get CORS errors before any POST/GET happens.
-- **Wrong path:** this template serves MCP at `/api` on Vercel; hitting `/` often returns `404` or `405` depending on your project settings.
-- **Vercel Git deploy Root Directory:** for Git integration, set the project **Root Directory** to `apps/mcp-server`.
-- **Timeouts / long-running tools:** keep tool execution deterministic and fast; avoid long-running calls that exceed platform/request timeouts.
-- **Proxy/CDN buffering:** some intermediaries buffer streaming responses, causing SSE events to arrive all at once; test without extra proxies when debugging.
-
-Optional quick test:
+### 5. Verify
 
 ```bash
-# Health check
 curl -sS https://YOUR-PROJECT.vercel.app/api/health
+# → {"ok":true}
+```
 
-# SSE (must include Accept; session id shown as placeholder)
+Optional SSE test (requires a valid session):
+
+```bash
 curl -i \
   -H 'Accept: text/event-stream' \
   -H 'MCP-Session-Id: YOUR_SESSION_ID' \
   https://YOUR-PROJECT.vercel.app/api
 ```
 
-### 405 Method Not Allowed
-- You’re likely hitting the wrong path.
-- This template expects MCP at `/api`.
-- If you deployed `apps/mcp-server` but don’t see `/api/health`, confirm `apps/mcp-server/vercel.json` is present and deployed, and your Vercel project Root Directory is correct.
+### Local Development
 
-### CORS errors
-- ChatGPT will preflight with `OPTIONS /api`.
-- This template implements `OPTIONS /` and sets:
-  - `Access-Control-Allow-Origin: *`
-  - `Access-Control-Allow-Methods: GET,POST,OPTIONS`
-  - `Access-Control-Allow-Headers: Content-Type, Accept, MCP-Session-Id, Last-Event-ID`
+```bash
+cd apps/mcp-server
+npm run dev
+# → http://localhost:3000
+# → http://localhost:3000/health
+```
 
-### POST /api (JSON-RPC) should work with `Accept: application/json`
-- ChatGPT publishing/verification often uses `Accept: application/json` for JSON-RPC.
-- This template supports that for `POST /api` (and does not require `text/event-stream` on POST).
-
-### GET /api not streaming (SSE)
-- Your client must send `Accept: text/event-stream`.
-- Without that header, the server responds with `406 Not Acceptable`.
-
-### “Invalid or missing session ID” on GET /api
-- Streamable HTTP uses a session handshake.
-- `GET /api` is used to attach the SSE stream for an existing session; it requires an `MCP-Session-Id` header.
+Locally, paths are `/` and `/health` (not `/api`).
 
 ---
 
-## Customizing Tools Safely (Review-Friendly)
+## 📁 Project Structure
 
-This template is intentionally deterministic and auditable.
-
-Guidelines:
-- Validate all inputs with Zod schemas.
-- Keep tools deterministic (no randomization, no network calls) unless you explicitly need them.
-- Never hard-code secrets; use environment variables.
-- Avoid background loops or agent-like behavior.
-
-Where to edit:
-- Add/edit tools and resources in `apps/mcp-server/src/mcp.ts`.
-
----
-
-## FAQ
-
-### Why is there a paid version if the repo is public?
-This is an “open-core” style template: the working reference implementation is public (MIT), and the Pro package is a separate paid download that bundles additional examples and templates.
-
-If you only need the minimal MCP server + one tool + one UI resource, the free repo is enough.
-
-### Is this guaranteed to work forever?
-No. MCP, ChatGPT, Vercel runtimes, and browser/client expectations can change over time. This repo is a stable reference point, but long-term compatibility is not guaranteed.
-
----
-
-## Support & Updates
-- **Free repo:** best-effort community support via issues/PRs.
-- **Pro package:** best-effort support and updates are included for buyers, but there are no lifetime guarantees.
-
-## Pro License Note
-- The Pro version is intended for commercial use (including client work).
-- You may not redistribute, repackage, or resell Pro materials (source, templates, docs) as a competing product.
-- This free repository remains MIT licensed.
+```
+apps/
+├─ mcp-server/                          # ← deploy this
+│  ├─ api/
+│  │  ├─ index.ts                       # Vercel entrypoint → /api
+│  │  └─ health.ts                      # Liveness probe → /api/health
+│  ├─ src/
+│  │  ├─ http.ts                        # CORS, session map, Accept normalization
+│  │  ├─ mcp.ts                         # Tool + resource registration
+│  │  └─ local.ts                       # Local dev server (port 3000)
+│  ├─ ui/starter/widget.html            # UI resource served via MCP
+│  └─ vercel.json                       # Deployment config
+├─ web/                                 # Optional local demo page (Vite)
+docs/
+├─ HOW_TO_CUSTOMIZE.md                  # Extension patterns for tools/resources
+├─ SUBMISSION_CHECKLIST.md              # ChatGPT App submission steps
+├─ APP_METADATA_TEMPLATE.md             # App listing metadata
+├─ PRIVACY_POLICY_TEMPLATE.md           # Privacy policy starting point
+├─ MONETIZATION.md                      # Payment integration references
+└─ CHANGELOG.md                         # Version history
+```
 
 ---
 
-## License
-MIT (see LICENSE).
+## 🧩 Extensibility
+
+### Adding Tools
+
+All tools and resources are registered in `apps/mcp-server/src/mcp.ts`:
+
+```typescript
+server.registerTool(
+  'your_tool_name',
+  {
+    title: 'Your Tool',
+    description: 'What it does (this is what the LLM sees).',
+    inputSchema: {
+      query: z.string().describe('The input parameter')
+    }
+  },
+  async ({ query }): Promise<CallToolResult> => {
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result) }]
+    };
+  }
+);
+```
+
+### Adding UI Resources
+
+1. Add an HTML file under `apps/mcp-server/ui/`
+2. Register with a `ui://` URI in `mcp.ts`
+3. Return file content in the resource read handler
+
+### Design Rules
+
+- **Validate all inputs with Zod.** The schema is both the LLM-facing contract and your runtime guard.
+- **Keep tools deterministic** until you have a reason not to. Non-determinism makes transport debugging impossible.
+- **Never hard-code secrets.** Use environment variables.
+- **Avoid background loops or agent-like behavior.** This is a request-response server, not an autonomous agent.
+- **Keep tool execution fast.** Platform timeouts will kill long-running operations without warning.
+- **Verify transport before adding complexity.** Deploy the baseline, confirm it works, then extend. Adding non-deterministic tools before confirming the transport layer works makes failures ambiguous.
+
+---
+
+## 🗺 Roadmap
+
+This repository is intentionally minimal and will remain so. Planned additions:
+
+- Additional example tools demonstrating common patterns
+- CI/CD configuration examples
+- Platform compatibility notes as MCP and ChatGPT evolve
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+## 🗺 Roadmap
+
+This is not growing into a framework. The intent is to stay minimal.
+
+- [ ] Track MCP spec changes as the protocol evolves
+- [ ] Add a multi-tool example without increasing deployment complexity
+- [ ] Keep Vercel runtime compatibility verified
+
+---
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE).
+
+*Built by [Shuddha Chowdhury](https://github.com/shuddha2021)*
